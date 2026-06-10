@@ -22,6 +22,7 @@ import {
   type RetrievedPassage,
   type Citation,
 } from "./services/bedrock.js";
+import { CognitoAuthRequiredError } from "./auth/cognito.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -231,7 +232,7 @@ Error handling:
       };
     } catch (error) {
       return {
-        content: [{ type: "text", text: formatAwsError(error) }],
+        content: [{ type: "text", text: error instanceof CognitoAuthRequiredError ? error.message : formatAwsError(error) }],
         isError: true,
       };
     }
@@ -402,7 +403,7 @@ Error handling:
       };
     } catch (error) {
       return {
-        content: [{ type: "text", text: formatAwsError(error) }],
+        content: [{ type: "text", text: error instanceof CognitoAuthRequiredError ? error.message : formatAwsError(error) }],
         isError: true,
       };
     }

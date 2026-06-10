@@ -8,6 +8,7 @@ import {
   type RetrievalFilter,
 } from "@aws-sdk/client-bedrock-agent-runtime";
 import { fromIni } from "@aws-sdk/credential-providers";
+import { getCognitoCredentials, CognitoAuthRequiredError } from "../auth/cognito.js";
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -18,12 +19,22 @@ const AWS_PROFILE = process.env.AWS_PROFILE ?? "default";
 
 let _client: BedrockAgentRuntimeClient | null = null;
 
-export function getBedrockClient(): BedrockAgentRuntimeClient {
+export async function getBedrockClient(): Promise<BedrockAgentRuntimeClient> {
   if (!_client) {
-    _client = new BedrockAgentRuntimeClient({
-      region: AWS_REGION,
-      credentials: fromIni({ profile: AWS_PROFILE }),
-    });
+    if (process.env.COGNITO_IDENTITY_POOL_ID) {
+      try {
+        const credentials = await getCognitoCredentials(AWS_REGION);
+        _client = new BedrockAgentRuntimeClient({ region: AWS_REGION, credentials });
+      } catch (err) {
+        if (err instanceof CognitoAuthRequiredError) throw err;
+        throw err;
+      }
+    } else {
+      _client = new BedrockAgentRuntimeClient({
+        region: AWS_REGION,
+        credentials: fromIni({ profile: AWS_PROFILE }),
+      });
+    }
   }
   return _client;
 }
@@ -65,7 +76,7 @@ export interface RetrieveParams {
 }
 
 export async function retrieve(params: RetrieveParams): Promise<RetrieveResult> {
-  const client = getBedrockClient();
+  const client = await getBedrockClient();
 
   const input: RetrieveCommandInput = {
     knowledgeBaseId: params.knowledgeBaseId,
@@ -113,7 +124,7 @@ export interface RetrieveAndGenerateParams {
 export async function retrieveAndGenerate(
   params: RetrieveAndGenerateParams
 ): Promise<RetrieveAndGenerateResult> {
-  const client = getBedrockClient();
+  const client = await getBedrockClient();
 
   const input: RetrieveAndGenerateCommandInput = {
     input: { text: params.query },
@@ -182,7 +193,9 @@ export function formatAwsError(error: unknown): string {
       return "Error: AWS request throttled. Wait a moment and retry.";
     }
     if (name === "CredentialsProviderError") {
-      return `Error: Could not load AWS credentials for profile '${AWS_PROFILE}'. Run 'aws sso login --profile ${AWS_PROFILE}' or check your ~/.aws/credentials file.`;
+      return process.env.COGNITO_IDENTITY_POOL_ID
+        ? `Error: Could not obtain AWS credentials via Cognito. Delete ~/.atlas-ai/cognito-credentials.json and restart to re-authenticate.`
+        : `Error: Could not load AWS credentials for profile '${AWS_PROFILE}'. Run 'aws sso login --profile ${AWS_PROFILE}' or check your ~/.aws/credentials file.`;
     }
     return `Error [${name}]: ${msg}`;
   }

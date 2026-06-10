@@ -37,8 +37,11 @@
   "homepage": "https://github.com/miguel-carrera/aws-bedrock-mcp-server#readme",
   "dependencies": {
     "@aws-sdk/client-bedrock-agent-runtime": "^3.758.0",
+    "@aws-sdk/client-cognito-identity": "^3.1065.0",
+    "@aws-sdk/credential-provider-cognito-identity": "^3.972.44",
     "@aws-sdk/credential-providers": "^3.758.0",
     "@modelcontextprotocol/sdk": "^1.6.1",
+    "open": "^11.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

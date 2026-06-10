@@ -17,6 +17,28 @@ claude mcp add aws-bedrock -- npx -y @miguel-carrera/aws-bedrock-mcp-server
 
 Or add to your `claude_desktop_config.json` / `.mcp.json`:
 
+**Cognito auth (recommended):**
+
+```json
+{
+  "mcpServers": {
+    "aws-bedrock": {
+      "command": "npx",
+      "args": ["-y", "@miguel-carrera/aws-bedrock-mcp-server"],
+      "env": {
+        "BEDROCK_KNOWLEDGE_BASE_ID": "<your-kb-id>",
+        "AWS_REGION": "us-east-1",
+        "COGNITO_IDENTITY_POOL_ID": "<identity-pool-id>",
+        "COGNITO_USER_POOL_CLIENT_ID": "<app-client-id>",
+        "COGNITO_DOMAIN": "<your-domain>.auth.us-east-1.amazoncognito.com"
+      }
+    }
+  }
+}
+```
+
+**AWS profile auth:**
+
 ```json
 {
   "mcpServers": {
@@ -38,7 +60,10 @@ Or add to your `claude_desktop_config.json` / `.mcp.json`:
 ## Prerequisites
 
 - Node.js ≥ 18
-- AWS credentials configured in `~/.aws/credentials` or `~/.aws/config`
+
+**For AWS profile auth:** credentials configured in `~/.aws/credentials` or `~/.aws/config`.
+
+**For Cognito auth:** a Cognito User Pool with a hosted UI and an Identity Pool. On the first run the server opens your browser to log in; credentials are cached to `~/.atlas-ai/cognito-credentials.json` and reused until they expire (~1 hour).
 
 Required IAM permissions:
 
@@ -61,7 +86,12 @@ Required IAM permissions:
 |---|---|---|---|
 | `BEDROCK_KNOWLEDGE_BASE_ID` | Recommended | — | Default Knowledge Base ID; can be overridden per tool call |
 | `AWS_REGION` | No | `us-east-1` | AWS region where your Knowledge Base lives |
-| `AWS_PROFILE` | No | `default` | AWS named profile from `~/.aws` |
+| **Cognito auth** | | | |
+| `COGNITO_IDENTITY_POOL_ID` | Yes (Cognito) | — | Cognito Identity Pool ID — activates Cognito auth when set |
+| `COGNITO_USER_POOL_CLIENT_ID` | Yes (Cognito) | — | Cognito User Pool app client ID |
+| `COGNITO_DOMAIN` | Yes (Cognito) | — | Cognito hosted UI domain (e.g. `xyz.auth.us-east-1.amazoncognito.com`) |
+| **AWS profile auth** | | | |
+| `AWS_PROFILE` | No | `default` | AWS named profile from `~/.aws` (used when `COGNITO_IDENTITY_POOL_ID` is not set) |
 
 ---
 
