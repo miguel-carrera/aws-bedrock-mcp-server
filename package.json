@@ -1,6 +1,6 @@
 {
   "name": "@miguel-carrera/aws-bedrock-mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for AWS Bedrock Knowledge Base — semantic search and RAG via bedrock_retrieve and bedrock_retrieve_and_generate",
   "type": "module",
   "main": "dist/index.js",
