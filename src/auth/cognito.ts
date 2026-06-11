@@ -36,7 +36,15 @@ interface CachedCredentials {
   expiration: string;
 }
 
+// In-memory cache — used as fallback when the file cannot be written (e.g.
+// restricted environments like the Claude.ai desktop extension sandbox).
+let memoryCache: CachedCredentials | null = null;
+
 async function readCache(): Promise<CachedCredentials | null> {
+  // Memory cache takes priority — no disk I/O needed
+  if (memoryCache && new Date(memoryCache.expiration).getTime() > Date.now() + 60_000) {
+    return memoryCache;
+  }
   try {
     const raw = await readFile(CACHE_PATH, "utf8");
     const cached: CachedCredentials = JSON.parse(raw);
@@ -51,8 +59,16 @@ async function readCache(): Promise<CachedCredentials | null> {
 }
 
 async function writeCache(creds: CachedCredentials): Promise<void> {
-  await mkdir(join(homedir(), ".atlas-ai"), { recursive: true });
-  await writeFile(CACHE_PATH, JSON.stringify(creds, null, 2), "utf8");
+  memoryCache = creds;
+  try {
+    await mkdir(join(homedir(), ".atlas-ai"), { recursive: true });
+    await writeFile(CACHE_PATH, JSON.stringify(creds, null, 2), "utf8");
+  } catch (err) {
+    // File write failed (e.g. sandbox restrictions) — memory cache is still set
+    // so the session will work; credentials just won't survive a process restart.
+    console.error("[cognito-auth] Could not write credentials to disk:", (err as Error).message);
+    console.error("[cognito-auth] Using in-memory cache for this session.");
+  }
 }
 
 // ── Browser auth flow (runs in background after throwing) ────────────────────
